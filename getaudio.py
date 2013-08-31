@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import re
 import urllib.request
 from time import sleep
@@ -29,3 +31,4 @@ for line in open("Ukrainian.html").readlines():
     getfile(result.group(1))
     print("Спимо 1 секунду..")
     sleep(1)
+
