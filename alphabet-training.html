@@ -1,0 +1,147 @@
+<!DOCTYPE>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Alphabet Training</title>
+<style>
+  html, body {
+    margin: 0; background: white; font-family:helvetica; text-align:center }
+  body { position: absolute; top:30%; width: 100% }
+  input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
+  div { text-align:center }
+  #progress { font-size: 30px }
+  #audio { margin: 50px 0 }
+  audio { width:300px; height: 30px }
+  #type a { color:#000000 }
+  #type a:visited { color:#000000 }
+</style>
+</head>
+<body>
+<div id="progress">1/100</div>
+<div id="audio"><br/></div>
+<div id="type">
+  <a href="#" onclick="set_sorted_alphabet()">Sorted</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#" onclick="set_qwerty_alphabet()">QWERTY</a>
+</div>
+<div id="answers"></div>
+<script type="text/javascript">
+function shuffle(arr) {
+  var shuffled = arr.slice(0); // Copy
+
+  // Fisher-Yates
+  for (var i = shuffled.length - 1; i > 1; --i) {
+    j = Math.floor(Math.random() * i);
+    var x = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = x;
+  }
+  return shuffled;
+};
+
+var sorted_alphabet = [
+  "А","Б","В","Г","Ґ","Д","Е","Є","Ж","З","И","І","Ї","Й","К","Л","М","Н","О",
+  "П","Р","С","Т","У","Ф","Ц","Ч","Ш","Щ","Ь","Ю","Я"];
+
+var qwerty_alphabet = [
+  ["Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х","Ї"],
+  ["Ф","І","В","А","П","Р","О","Л","Д","Ж","Є","Ґ"],
+  ["Я","Ч","С","М","И","Т","Ь","Б","Ю"]
+];
+
+var alphabet = shuffle(sorted_alphabet);
+var length = alphabet.length;
+
+var progress = document.getElementById("progress");
+var audio = document.getElementById("audio");
+var answers = document.getElementById("answers");
+
+function clear_answers() {
+  while (answers.hasChildNodes()) {
+    answers.removeChild(answers.lastChild);
+  }
+}
+
+function add_answers(list) {
+  for (var i = 0; i < list.length; ++i) {
+    var letter = list[i];
+    var answer = document.createElement("input");
+    answer.setAttribute("onclick", "guess(\"" + letter + "\");");
+    answer.setAttribute("type", "button");
+    answer.setAttribute("value", letter);
+    answers.appendChild(answer);
+  }
+}
+
+function set_sorted_alphabet() {
+  clear_answers();
+  add_answers(sorted_alphabet);
+}
+
+function set_qwerty_alphabet() {
+  clear_answers();
+  add_answers(qwerty_alphabet[0]);
+  var br = document.createElement("br");
+  answers.appendChild(br);
+  add_answers(qwerty_alphabet[1]);
+  var br = document.createElement("br");
+  answers.appendChild(br);
+  add_answers(qwerty_alphabet[2]);
+}
+
+var current = 0;
+var score = 0;
+var errors = [];
+
+function show() {
+  progress.innerHTML = (current + 1) + "/" + length;
+  var audioElement = document.createElement("audio");
+  audioElement.setAttribute("controls", "");
+  var audioSourceElement = document.createElement("source");
+  audioSourceElement.setAttribute("type", "audio/ogg");
+  audioSourceElement.setAttribute("src",
+    "audio/Uk-ua-male-alphabet-" + alphabet[current].toLowerCase() + ".ogg");
+  audioElement.appendChild(audioSourceElement);
+  audio.appendChild(audioElement);
+  audio.removeChild(audio.firstChild);
+}
+
+function guess(letter) {
+  if (letter == alphabet[current]) {
+    ++score;
+  } else {
+    errors.push([ alphabet[current], letter ]);
+  }
+
+  ++current;
+  if (current === length) {
+    var pct = score / length * 100;
+    var summary = "You got " + pct + "% correct!<br/><br/>"
+    summary += "<table align=\"center\"><thead>";
+    summary += "<td colspan=\"2\">Letter</td><td colspan=\"2\">Guess</td>";
+    summary += "</thead><tbody>"
+    for (var i = 0; i < errors.length; ++i) {
+      row = "<tr>";
+      row += "<td>" + errors[i][0] + "</td>";
+      row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
+      row += "Uk-ua-male-alphabet-" + errors[i][0].toLowerCase() + ".ogg"
+      row += "\"/></audio>";
+      row += "<td>" + errors[i][1] + "</td>";
+      row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
+      row += "Uk-ua-male-alphabet-" + errors[i][1].toLowerCase() + ".ogg"
+      row += "\"/></audio>";
+      row += "</tr>";
+      summary += row;
+    }
+    summary += "</tbody></table>";
+    document.body.innerHTML = summary;
+  } else {
+    show();
+  }
+}
+
+show();
+set_sorted_alphabet();
+</script>
+</body>
+</html>
