@@ -1,0 +1,358 @@
+<!DOCTYPE>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Vocabulary Training</title>
+<style>
+  html, body {
+    margin: 0; background: white; font-family:helvetica; text-align:center }
+  body { position: absolute; top:30%; width: 100% }
+  input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
+  div { text-align:center }
+  #progress { font-size: 30px }
+  #audio { margin: 50px 0 }
+  toGuess { width:300px; height: 30px }
+  #type a { color:#000000 }
+  #type a:visited { color:#000000 }
+</style>
+</head>
+<body>
+<div id="modeselect">
+  <a href="#" onclick="set_mode('sound2uk');">UK Sound &#x2192; UK</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#" onclick="set_mode('uk2en');">UK text &#x2192; EN text</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#" onclick="set_mode('en2uk');">EN text &#x2192; UK text</a>
+</div>
+<div id="game" style="display:none">
+  <div id="progress">1/100</div>
+  <br/>
+  <div id="toGuess"></div>
+  <br/><br/><br/>
+  <div id="answerInput"></div>
+  <div id="keyboard"></div>
+</div>
+<script type="text/javascript" src="js/util.js"></script>
+<script type="text/javascript" src="js/keyboard.js"></script>
+<script type="text/javascript">
+function getIndex (category1, category2) {
+  var oRequest = new XMLHttpRequest();
+  var sURL = "http://"
+         + self.location.hostname
+         + "/audio/verbs/1/Uk-ua-male-verbs-infinitives.csv"
+
+  oRequest.open("GET",sURL,false);
+  oRequest.setRequestHeader("User-Agent",navigator.userAgent);
+  oRequest.send(null)
+ 
+  if (oRequest.status==200)
+    return oRequest.responseText;
+  else alert("Error executing XMLHttpRequest call!");
+//  return "uk1,en1,file1.ogg\nuk2,en2,file2.ogg\nuk3,en3,file3.ogg"
+//  return "бачити;to see;Uk-ua-male-бачити.ogg\nпрацювати;to work;Uk-ua-male-працювати.ogg\nчитати;to read;Uk-ua-male-читати.ogg\nміняти;to change;Uk-ua-male-міняти.ogg\nобирати;to elect, choose;Uk-ua-male-обирати.ogg\nвважати;to consider (that), deem;Uk-ua-male-вважати.ogg\nкерувати;to direct, lead (drive, manage);Uk-ua-male-керувати.ogg\nпривітати;to greet;Uk-ua-male-привітати.ogg\nстворити;to create (perfectum);Uk-ua-male-створити.ogg\nбудувати;to build;Uk-ua-male-будувати.ogg\nвирішувати;to resolve, decide;Uk-ua-male-вирішувати.ogg\nдумати;to think;Uk-ua-male-думати.ogg\nдозволяти;to allow;Uk-ua-male-дозволяти.ogg\nпочинати;to start, begin;Uk-ua-male-починати.ogg\nспівати;to sing;Uk-ua-male-співати.ogg";
+}
+ 
+// This will parse a delimited string into an array of
+// arrays. The default delimiter is the comma, but this
+// can be overriden in the second argument.
+// Watch out for whitespace, this is _NOT_ stripped
+function CSVToArray( strData, strDelimiter ){
+   // Check to see if the delimiter is defined. If not,
+   // then default to comma.
+   strDelimiter = (strDelimiter || ",");
+ 
+   // Create a regular expression to parse the CSV values.
+   var objPattern = new RegExp(
+     (     
+         // Delimiters.
+         "(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+ 
+         // Quoted fields.
+         "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+ 
+         // Standard fields.
+         "([^\"\\" + strDelimiter + "\\r\\n]*))"
+       ),"gi"
+    );
+ 
+ 
+   // Create an array to hold our data. Give the array
+   // a default empty first row.
+   var arrData = [[]];
+ 
+   // Create an array to hold our individual pattern
+   // matching groups.
+   var arrMatches = null;
+ 
+ 
+   // Keep looping over the regular expression matches
+   // until we can no longer find a match.
+   while (arrMatches = objPattern.exec( strData )){
+ 
+     // Get the delimiter that was found.
+     var strMatchedDelimiter = arrMatches[ 1 ];
+ 
+     // Check to see if the given delimiter has a length
+     // (is not the start of string) and if it matches
+     // field delimiter. If id does not, then we know
+     // that this delimiter is a row delimiter.
+     if (
+         strMatchedDelimiter.length &&
+         (strMatchedDelimiter != strDelimiter)
+        ){
+ 
+     // Since we have reached a new row of data,
+     // add an empty row to our data array.
+     arrData.push( [] );
+ 
+     }
+ 
+     // Now that we have our delimiter out of the way,
+     // let's check to see which kind of value we
+     // captured (quoted or unquoted).
+     if (arrMatches[ 2 ]){
+ 
+       // We found a quoted value. When we capture
+       // this value, unescape any double quotes.
+       var strMatchedValue = arrMatches[ 2 ].replace(
+           new RegExp( "\"\"", "g" ),"\""
+         );
+ 
+       } else {
+ 
+       // We found a non-quoted value.
+       var strMatchedValue = arrMatches[ 3 ];
+ 
+     }
+ 
+ 
+     // Now that we have our value string, let's add
+     // it to the data array.
+     arrData[ arrData.length - 1 ].push( strMatchedValue );
+   }
+ 
+   // Return the parsed data.
+   return( arrData );
+ }
+
+var modeselect = document.getElementById("modeselect");
+var game = document.getElementById("game");
+var progress = document.getElementById("progress");
+var toGuess = document.getElementById("toGuess");
+
+// needs less hard coding!
+function get_words(category, wordset) {
+  var contents = getIndex("verbs", "1");
+  var mappings = CSVToArray(contents, ';');
+  return mappings;
+}
+
+var current = 0;
+var score = 0;
+var errors = [];
+var words = shuffle(get_words("verbs", 20));
+var fileprefix = "audio/verbs/1/";
+var mode = "sound2uk";
+var options = 5;
+
+function set_mode(newMode) {
+  mode = newMode;
+  modeselect.setAttribute("style", "display:none");
+  game.setAttribute("style", "display:block");
+  if (mode != "sound2uk") {
+    keyboard.setAttribute("style", "display:none");
+  } else {
+    keyboard.setAttribute("style", "display:block");
+  }
+  show();
+}
+
+function show() {
+  removeAllChildren(toGuess);
+  removeAllChildren(answerInput);
+
+  var length = words.length;
+  progress.innerHTML = (current + 1) + "/" + length;
+
+  if (mode == "sound2uk" && typeof words[current][2] != undefined) {
+    var toGuessElement = document.createElement("audio");
+    toGuessElement.setAttribute("controls", "");
+    var toGuessSourceElement = document.createElement("source");
+    toGuessSourceElement.setAttribute("type", "audio/ogg");
+    toGuessSourceElement.setAttribute("src", fileprefix + words[current][2]);
+    toGuessElement.appendChild(toGuessSourceElement);
+    toGuess.appendChild(toGuessElement);
+    toGuessElement.play();
+
+    var answerInputElement = document.createElement("input");
+    answerInputElement.setAttribute("type", "text");
+    answerInputElement.setAttribute("id", "answerInputBox")
+    answerInputElement.setAttribute("onkeydown", "if (event.keyCode == 13) getElementById(\"guessButton\").click()");
+    answerInput.appendChild(answerInputElement);
+
+    var guessButtonElement = document.createElement("input");
+    guessButtonElement.setAttribute("type", "submit");
+    guessButtonElement.setAttribute("onclick", "guess(getElementById(\"answerInputBox\").value);");
+    guessButtonElement.setAttribute("id", "guessButton")
+    answerInput.appendChild(guessButtonElement);
+
+    var skipButtonElement = document.createElement("input");
+    skipButtonElement.setAttribute("type", "submit");
+    skipButtonElement.setAttribute("value", "Skip")
+    skipButtonElement.setAttribute("onclick", "guess(\"\");");
+    answerInput.appendChild(skipButtonElement);
+  }
+
+  if (mode == "en2uk") {
+    toGuess.innerHTML = words[current][1];
+    makeChoices();
+  }
+
+  if (mode == "uk2en") {
+    toGuess.innerHTML = words[current][0];
+    makeChoices();
+  }
+
+
+}
+
+function getNRandomIntsExcluding (n, min, max, excluded) {
+  var ints = [];
+  var gen = undefined;
+    
+  for (var i = 0; i < n; ++i)
+  {
+    while (gen == undefined || ints.indexOf(gen) != -1 || gen == excluded)
+    {
+      gen = Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    ints.push(gen);
+  }
+
+  return ints;
+}
+
+function makeChoices() {
+
+  var unique = getNRandomIntsExcluding(options-1, 0, words.length-1, current);
+  unique.push(current);
+  unique = shuffle(unique);
+
+  for (var i = 0; i < unique.length; ++i) {
+    var guessButtonElement = document.createElement("input");
+    guessButtonElement.setAttribute("type", "submit");
+
+    if (mode == "en2uk") {
+      var word = words[unique[i]][0];
+    }
+    else if (mode == "uk2en") {
+      var word = words[unique[i]][1];
+    }
+    guessButtonElement.setAttribute("value", word);
+    guessButtonElement.setAttribute("onclick", "guess(\"" + word + "\");");
+
+    answerInput.appendChild(guessButtonElement);
+  }
+
+}
+
+function takeInput(letter) {
+  letter = letter.toLowerCase();
+  var answerInputBox = document.getElementById("answerInputBox");
+  var startPos = answerInputBox.selectionStart;
+  var endPos = answerInputBox.selectionEnd;
+
+  var currentText = answerInputBox.value;
+
+  if (startPos == currentText.length) {
+    answerInputBox.value =  currentText.concat(letter);
+  } else {
+    answerInputBox.value = currentText.slice(0, startPos) 
+        + letter + currentText.slice(endPos, currentText.length)
+  }
+  
+  answerInputBox.focus();
+}
+
+function makeErrorRow (error) {
+  if (mode == "sound2uk") {
+    row = "<td>" + error[0][0] + "</td>";
+    row += "<td><audio controls><source type=\"audio/ogg\" src=\"";
+    row += fileprefix + error[0][2];
+    row += "\"/></audio>";
+    row += "<td>" + error[1] + "</td>";
+  }
+  else if (mode == "uk2en") {
+    row = "<td>" + error[0][0] + "</td>";
+    row += "<td>" + error[0][1] + "</td>";
+    row += "<td>" + error[1] + "</td>";
+  }
+  else if (mode == "en2uk") {
+    row = "<td>" + error[0][1] + "</td>";
+    row += "<td>" + error[0][0] + "</td>";
+    row += "<td>" + error[1] + "</td>";
+  }
+
+  return row;
+}
+
+function checkAnswer (answer) {
+  answer = answer.toLowerCase();
+  if (mode == "sound2uk") {
+
+    if (answer == words[current][0]) {
+      ++score;
+    } else {
+      errors.push([ words[current], answer, words[current][2] ]);
+    }
+  }
+
+  else if (mode == "uk2en") {
+
+    if (answer == words[current][1]) {
+      ++score;
+    } else {
+      errors.push([ words[current], answer, words[current][2] ]);
+    }
+  }
+
+  else if (mode == "en2uk") {
+
+    if (answer == words[current][0]) {
+      ++score;
+    } else {
+      errors.push([ words[current], answer, words[current][2] ]);
+    }
+  }
+
+}
+
+function guess(answer) {
+
+  if (answer == "") {
+    alert("The correct answer was\n" + words[current][0]);
+  }
+
+  checkAnswer(answer);
+  ++current;
+
+  if (current === words.length) {
+    var pct = Math.round(score / words.length * 100);
+    var summary = "You got " + pct + "% correct!<br/><br/>"
+    summary += "<table align=\"center\"><thead>";
+    summary += "<td colspan=\"2\">Word</td><td>Guess</td>";
+    summary += "</thead><tbody>"
+    for (var i = 0; i < errors.length; ++i) {
+      summary += "<tr>" + makeErrorRow(errors[i]) + "</tr>";
+    }
+    summary += "</tbody></table>";
+    document.body.innerHTML = summary;
+  } else {
+    show();
+  }
+}
+
+</script>
+</body>
+</html>
+

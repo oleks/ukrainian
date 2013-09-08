@@ -107,6 +107,28 @@ function show() {
   audioElement.play();
 }
 
+function showErrors() {
+  var ret = "<br/><br/>"
+  ret += "<table align=\"center\"><thead>";
+  ret += "<td colspan=\"2\">Letter</td><td colspan=\"2\">Guess</td>";
+  ret += "</thead><tbody>"
+  for (var i = 0; i < errors.length; ++i) {
+    row = "<tr>";
+    row += "<td>" + errors[i][0] + "</td>";
+    row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
+    row += "Uk-ua-male-alphabet-" + errors[i][0].toLowerCase() + ".ogg"
+    row += "\"/></audio>";
+    row += "<td>" + errors[i][1] + "</td>";
+    row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
+    row += "Uk-ua-male-alphabet-" + errors[i][1].toLowerCase() + ".ogg"
+    row += "\"/></audio>";
+    row += "</tr>";
+    ret += row;
+  }
+  ret += "</tbody></table>";
+  return ret;
+}
+
 function guess(letter) {
   if (letter == alphabet[current]) {
     ++score;
@@ -117,24 +139,10 @@ function guess(letter) {
   ++current;
   if (current === length) {
     var pct = score / length * 100;
-    var summary = "You got " + pct + "% correct!<br/><br/>"
-    summary += "<table align=\"center\"><thead>";
-    summary += "<td colspan=\"2\">Letter</td><td colspan=\"2\">Guess</td>";
-    summary += "</thead><tbody>"
-    for (var i = 0; i < errors.length; ++i) {
-      row = "<tr>";
-      row += "<td>" + errors[i][0] + "</td>";
-      row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
-      row += "Uk-ua-male-alphabet-" + errors[i][0].toLowerCase() + ".ogg"
-      row += "\"/></audio>";
-      row += "<td>" + errors[i][1] + "</td>";
-      row += "<td><audio controls><source type=\"audio/ogg\" src=\"audio/";
-      row += "Uk-ua-male-alphabet-" + errors[i][1].toLowerCase() + ".ogg"
-      row += "\"/></audio>";
-      row += "</tr>";
-      summary += row;
+    var summary = "You got " + pct + "% correct!";
+    if (score != length) {
+      summary += showErrors(); 
     }
-    summary += "</tbody></table>";
     document.body.innerHTML = summary;
   } else {
     show();
