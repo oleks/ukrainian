@@ -7,10 +7,11 @@
 <style>
   #main { position: absolute; top:30%; width: 100%; text-align:center }
   input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
+  input[type=submit] { height:30px; margin:2px }
   div { text-align:center }
   #progress { font-size: 30px }
   #audio { margin: 50px 0 }
-  toGuess { width:300px; height: 30px }
+  audio { width:300px; height: 30px }
   #type a { color:#000000 }
   #type a:visited { color:#000000 }
 </style>
@@ -206,9 +207,21 @@ function show_trans_to_see_hear_uk (wordindex) {
   toGuess = words[wordindex][0];
 }
 
-function add_sound_element(wordindex, hidden) {
+function show_uk_to_sound (wordindex) {
+  var answerdiv = document.getElementById("answer");
   var sounddiv = document.getElementById("sound");
+  var textdiv = document.getElementById("givenText");
 
+  removeAllChildren(answerdiv);
+  removeAllChildren(sounddiv);
+  removeAllChildren(textdiv);
+
+  add_uk_text(wordindex); 
+  add_uk_sound_choices(wordindex, 3);
+  toGuess = words[wordindex][0];
+}
+
+function add_sound_element_to(sounddiv, wordindex, hidden, play) {
   var audioElement = document.createElement("audio");
 
   if (hidden == true) {
@@ -224,17 +237,22 @@ function add_sound_element(wordindex, hidden) {
   audioElement.appendChild(audioSourceElement);
   sounddiv.appendChild(audioElement);
 
-  if (hidden == false) {
+  if (play) {
     audioElement.play();
   }
   return null;
 }
 
+function add_sound_element(wordindex, hidden, play) {
+  var sounddiv = document.getElementById("sound");
+  add_sound_element_to(sounddiv, wordindex, hidden, play);
+}
+
 function add_sound(wordindex) {
-  return add_sound_element(wordindex, hidden=false);
+  return add_sound_element(wordindex, hidden=false, play=true);
 }
 function add_hidden_sound(wordindex) {
-  return add_sound_element(wordindex, hidden=true);
+  return add_sound_element(wordindex, hidden=true, play=false);
 }
 
 function add_uk_text(wordindex) {
@@ -244,7 +262,6 @@ function add_uk_text(wordindex) {
   uktextdiv.innerHTML = words[wordindex][0];
   textdiv.appendChild(uktextdiv);
 }
-
 
 function add_en_text(wordindex) {
   var textdiv = document.getElementById("givenText");
@@ -257,7 +274,8 @@ function add_en_text(wordindex) {
 var all_steps = [
   show_meet,
   show_hear_see_uk_to_trans,
-  show_trans_to_see_hear_uk
+  show_trans_to_see_hear_uk,
+  show_uk_to_sound
 ];
 var next_step = 0;
 
@@ -296,7 +314,49 @@ function n_rand_int_from_to_excl (n, min, max, excluded) {
   return ints;
 }
 
-function add_choices(wordindex, language, sound, number) {
+function text_choice(wordindex, language) {
+  var guessButtonElement = document.createElement("input");
+  guessButtonElement.setAttribute("type", "submit");
+ 
+  var word = words[wordindex][languages[language]];
+
+  guessButtonElement.setAttribute("value", word);
+  guessButtonElement.setAttribute("onclick", "guess(\"" + word + "\");");
+  return guessButtonElement;
+}
+
+function anonym_choice(wordindex, language) {
+  var guessButtonElement = document.createElement("input");
+  guessButtonElement.setAttribute("type", "submit");
+ 
+  var word = words[wordindex][languages[language]];
+
+  guessButtonElement.setAttribute("value", "☺");
+  guessButtonElement.setAttribute("onclick", "guess(\"" + word + "\");");
+  return guessButtonElement;
+}
+
+function text_hidden_sound_choice(wordindex, language) {
+  var guessButtonElement = text_choice(wordindex, language);
+  add_hidden_sound(wordindex);
+  guessButtonElement.setAttribute("onmouseover",
+    "document.getElementById(\"audio\"+"+wordindex+").play();");
+  return guessButtonElement;
+}
+
+function anonym_visible_sound_choice(wordindex, language) {
+  var guessElement = document.createElement("div");
+  var guessButtonElement = anonym_choice(wordindex, language);
+
+  guessElement.appendChild(document.createElement("br"));
+  add_sound_element_to(guessElement, wordindex, hidden=false, play=false);
+  guessElement.appendChild(document.createElement("br"));
+  guessElement.appendChild(guessButtonElement);
+
+  return guessElement;
+}
+
+function add_choices(wordindex, language, number, choice_fun) {
 
   var answerdiv = document.getElementById("answer");
   var unique = n_rand_int_from_to_excl(number-1, 0, words.length-1, wordindex);
@@ -304,33 +364,22 @@ function add_choices(wordindex, language, sound, number) {
   unique = shuffle(unique);
 
   for (var i = 0; i < unique.length; ++i) {
-    var guessButtonElement = document.createElement("input");
-    guessButtonElement.setAttribute("type", "submit");
- 
-    var word = words[unique[i]][languages[language]];
-
-    guessButtonElement.setAttribute("value", word);
-    guessButtonElement.setAttribute("onclick", "guess(\"" + word + "\");");
-
-    if (sound == true) {
-      add_hidden_sound(unique[i]);
-      guessButtonElement.setAttribute("onmouseover",
-        "document.getElementById(\"audio\"+"+unique[i]+").play();");
-    }
-
-    answerdiv.appendChild(guessButtonElement);
+    answerdiv.appendChild(choice_fun(unique[i], language));
   } 
 }
 
 function add_en_text_choices(wordindex, number) {
-  add_choices(wordindex, "en", false, number);
+  add_choices(wordindex, "en", number, text_choice);
 }
 
 function add_uk_text_choices(wordindex, number) {
-  add_choices(wordindex, "uk", false, number);
+  add_choices(wordindex, "uk", number, text_choice);
 }
 function add_uk_sound_text_choices(wordindex, number) {
-  add_choices(wordindex, "uk", true, number);
+  add_choices(wordindex, "uk", number, text_hidden_sound_choice);
+}
+function add_uk_sound_choices(wordindex, number) {
+  add_choices(wordindex, "uk", number, anonym_visible_sound_choice);
 }
 
 function guess(word) {
