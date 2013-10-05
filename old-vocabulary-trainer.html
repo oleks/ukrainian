@@ -2,11 +2,10 @@
 <html>
 <head>
 <meta charset="utf-8"/>
-<title>Vocabulary Training</title>
+<link rel="stylesheet" type="text/css" href="css/main.css"/>
+<title>Old Vocabulary Trainer / Старий Тренер Словозапасу</title>
 <style>
-  html, body {
-    margin: 0; background: white; font-family:helvetica; text-align:center }
-  body { position: absolute; top:30%; width: 100% }
+  #main { position: absolute; top:30%; width: 100%; text-align:center }
   input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
   div { text-align:center }
   #progress { font-size: 30px }
@@ -17,8 +16,16 @@
 </style>
 </head>
 <body>
+<div id="main">
+<nav>
+  <ul>
+    <li><a href="index.html">Home / Головна</a></li>
+  </ul>
+</nav>
 <div id="modeselect">
-  <a href="#" onclick="set_mode('sound2uk');">UK Sound &#x2192; UK</a>
+  <a href="#" onclick="set_mode('ukSukT');">UK sound &#x2192; UK text</a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="#" onclick="set_mode('sound2uk');">UK sound &#x2192; UK</a>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <a href="#" onclick="set_mode('uk2en');">UK text &#x2192; EN text</a>
   &nbsp;&nbsp;&nbsp;&nbsp;
@@ -31,6 +38,7 @@
   <br/><br/><br/>
   <div id="answerInput"></div>
   <div id="keyboard"></div>
+</div>
 </div>
 <script type="text/javascript" src="js/util.js"></script>
 <script type="text/javascript" src="js/keyboard.js"></script>
@@ -71,7 +79,7 @@ function CSVToArray( strData, strDelimiter ){
          "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
  
          // Standard fields.
-         "([^\"\\" + strDelimiter + "\\r\\n]*))"
+         "([^\"\\" + strDelimiter + "\\r\\n]+))"
        ),"gi"
     );
  
@@ -174,7 +182,7 @@ function show() {
   var length = words.length;
   progress.innerHTML = (current + 1) + "/" + length;
 
-  if (mode == "sound2uk" && typeof words[current][2] != undefined) {
+  if (mode == "sound2uk" || mode == "ukSukT") {
     var toGuessElement = document.createElement("audio");
     toGuessElement.setAttribute("controls", "");
     var toGuessSourceElement = document.createElement("source");
@@ -183,7 +191,8 @@ function show() {
     toGuessElement.appendChild(toGuessSourceElement);
     toGuess.appendChild(toGuessElement);
     toGuessElement.play();
-
+  }
+  if (mode == "sound2uk") { 
     var answerInputElement = document.createElement("input");
     answerInputElement.setAttribute("type", "text");
     answerInputElement.setAttribute("id", "answerInputBox")
@@ -201,6 +210,10 @@ function show() {
     skipButtonElement.setAttribute("value", "Skip")
     skipButtonElement.setAttribute("onclick", "guess(\"\");");
     answerInput.appendChild(skipButtonElement);
+  }
+
+  if (mode == "ukSukT") {
+    makeChoices();
   }
 
   if (mode == "en2uk") {
@@ -242,7 +255,7 @@ function makeChoices() {
     var guessButtonElement = document.createElement("input");
     guessButtonElement.setAttribute("type", "submit");
 
-    if (mode == "en2uk") {
+    if (mode == "en2uk" || mode == "ukSukT") {
       var word = words[unique[i]][0];
     }
     else if (mode == "uk2en") {
@@ -274,13 +287,24 @@ function takeInput(letter) {
   answerInputBox.focus();
 }
 
+function findUk(word) {
+  for (var i = 0; i < words.length; ++i) {
+    if (words[i][0] == word) {
+      return i;
+    }
+  }
+}
+
 function makeErrorRow (error) {
-  if (mode == "sound2uk") {
+  if (mode == "sound2uk" || mode == "ukSukT") {
     row = "<td>" + error[0][0] + "</td>";
     row += "<td><audio controls><source type=\"audio/ogg\" src=\"";
     row += fileprefix + error[0][2];
-    row += "\"/></audio>";
+    row += "\"/></audio></td>";
     row += "<td>" + error[1] + "</td>";
+    row += "<td><audio controls><source type=\"audio/ogg\" src=\"";
+    row += fileprefix + words[findUk(error[1])][2];
+    row += "\"/></audio></td>";
   }
   else if (mode == "uk2en") {
     row = "<td>" + error[0][0] + "</td>";
@@ -300,6 +324,14 @@ function checkAnswer (answer) {
   answer = answer.toLowerCase();
   if (mode == "sound2uk") {
 
+    if (answer == words[current][0]) {
+      ++score;
+    } else {
+      errors.push([ words[current], answer, words[current][2] ]);
+    }
+  }
+
+  else if (mode == "ukSukT") {
     if (answer == words[current][0]) {
       ++score;
     } else {
