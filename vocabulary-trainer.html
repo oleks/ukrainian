@@ -3,11 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <link rel="stylesheet" type="text/css" href="css/main.css"/>
-<title>Vocabulary Training</title>
+<title>Vocabulary Trainer / Тренер Словозапасу</title>
 <style>
-  html, body {
-    margin: 0; background: white; font-family:helvetica; text-align:center }
-  body { position: absolute; top:30%; width: 100% }
+  #main { position: absolute; top:30%; width: 100%; text-align:center }
   input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
   div { text-align:center }
   #progress { font-size: 30px }
@@ -18,7 +16,12 @@
 </style>
 </head>
 <body>
-<div id="content">
+<nav>
+  <ul>
+    <li><a href="index.html">Home / Головна</a></li>
+  </ul>
+</nav>
+<div id="main">
 
 <div id="sound">
 </div>
@@ -70,7 +73,7 @@ function CSVToArray( strData, strDelimiter ){
          "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
  
          // Standard fields.
-         "([^\"\\" + strDelimiter + "\\r\\n]*))"
+         "([^\"\\" + strDelimiter + "\\r\\n]+))"
        ),"gi"
     );
  
@@ -139,6 +142,7 @@ var words = shuffle(get_words("verbs", 20));
 var counts = new Array(words.length);
 var fileprefix = "audio/verbs/1/";
 var languages = {"uk" : 0, "en" : 1}
+var toGuess = undefined;
 
 // needs less hard coding!
 function get_words(category, wordset) {
@@ -147,18 +151,11 @@ function get_words(category, wordset) {
   return mappings;
 }
 
-function show () {
-  show_meet (current);
-  show_soundword2en(current);
-  show_en2soundword(current);
-}
-
 function zero_array (arr) {
   for (i = 0; i < arr.length; i++) {
     arr[i] = 0;
   }
 }
-
 
 function show_meet (wordindex) {
   var answerdiv = document.getElementById("answer");
@@ -176,12 +173,11 @@ function show_meet (wordindex) {
   var gotitbutton = document.createElement("input");
   gotitbutton.setAttribute("type", "submit");
   gotitbutton.setAttribute("value", "Got it!");
-  gotitbutton.setAttribute("onclick", "current = current + 1; show();");
+  gotitbutton.setAttribute("onclick", "advance(); show();");
   answerdiv.appendChild(gotitbutton);
-
 }
 
-function show_soundword2en (wordindex) {
+function show_hear_see_uk_to_trans (wordindex) {
   var answerdiv = document.getElementById("answer");
   var sounddiv = document.getElementById("sound");
   var textdiv = document.getElementById("givenText");
@@ -192,10 +188,11 @@ function show_soundword2en (wordindex) {
 
   add_sound(wordindex);
   add_uk_text(wordindex);
-  add_en_text_choices(wordindex, 3)
+  add_en_text_choices(wordindex, 3);
+  toGuess = words[wordindex][1];
 }
 
-function show_en2soundword (wordindex) {
+function show_trans_to_see_hear_uk (wordindex) {
   var answerdiv = document.getElementById("answer");
   var sounddiv = document.getElementById("sound");
   var textdiv = document.getElementById("givenText");
@@ -206,6 +203,7 @@ function show_en2soundword (wordindex) {
 
   add_en_text(wordindex); 
   add_uk_sound_text_choices(wordindex, 3);
+  toGuess = words[wordindex][0];
 }
 
 function add_sound_element(wordindex, hidden) {
@@ -218,11 +216,10 @@ function add_sound_element(wordindex, hidden) {
   }
 
   audioElement.setAttribute("controls", "");
-  audioElement.setAttribute("id", String(wordindex));
+  audioElement.setAttribute("id", "audio" + String(wordindex));
 
   var audioSourceElement = document.createElement("source");
   audioSourceElement.setAttribute("type", "audio/ogg");
-  alert(words[wordindex][2]);
   audioSourceElement.setAttribute("src", fileprefix + words[wordindex][2]);
   audioElement.appendChild(audioSourceElement);
   sounddiv.appendChild(audioElement);
@@ -257,6 +254,31 @@ function add_en_text(wordindex) {
   textdiv.appendChild(entextdiv);
 }
 
+var all_steps = [
+  show_meet,
+  show_hear_see_uk_to_trans,
+  show_trans_to_see_hear_uk
+];
+var next_step = 0;
+
+function advance() {
+  if (next_step < all_steps.length - 1) {
+    next_step++;
+  }
+  else {
+    if (current < words.length - 1) {
+      current++;
+    }
+    else {
+      current = 0;
+    }
+    next_step = 0;
+  }
+}
+
+function show () {
+  all_steps[next_step](current);
+}
 
 function n_rand_int_from_to_excl (n, min, max, excluded) {
   var ints = [];
@@ -281,7 +303,6 @@ function add_choices(wordindex, language, sound, number) {
   unique.push(current);
   unique = shuffle(unique);
 
-
   for (var i = 0; i < unique.length; ++i) {
     var guessButtonElement = document.createElement("input");
     guessButtonElement.setAttribute("type", "submit");
@@ -292,11 +313,9 @@ function add_choices(wordindex, language, sound, number) {
     guessButtonElement.setAttribute("onclick", "guess(\"" + word + "\");");
 
     if (sound == true) {
-      add_hidden_sound(unique[i][2]);
-      soundElem = document.getElementById(unique[i][2]);
-      alert(soundElem);
-      guessButtonElement.setAttribute("onmouseover", soundElem + ".play();");
-
+      add_hidden_sound(unique[i]);
+      guessButtonElement.setAttribute("onmouseover",
+        "document.getElementById(\"audio\"+"+unique[i]+").play();");
     }
 
     answerdiv.appendChild(guessButtonElement);
@@ -314,177 +333,15 @@ function add_uk_sound_text_choices(wordindex, number) {
   add_choices(wordindex, "uk", true, number);
 }
 
-// var modeselect = document.getElementById("modeselect");
-// var game = document.getElementById("game");
-// var progress = document.getElementById("progress");
-// var toGuess = document.getElementById("toGuess");
-// 
-// 
-// var current = 0;
-// var score = 0;
-// var errors = [];
-// var words = shuffle(get_words("verbs", 20));
-// var mode = "sound2uk";
-// var options = 5;
-// 
-// function set_mode(newMode) {
-//   mode = newMode;
-//   modeselect.setAttribute("style", "display:none");
-//   game.setAttribute("style", "display:block");
-//   if (mode != "sound2uk") {
-//     keyboard.setAttribute("style", "display:none");
-//   } else {
-//     keyboard.setAttribute("style", "display:block");
-//   }
-//   show();
-// }
-// 
-// function show() {
-//   removeAllChildren(toGuess);
-//   removeAllChildren(answerInput);
-// 
-//   var length = words.length;
-//   progress.innerHTML = (current + 1) + "/" + length;
-// 
-//   if (mode == "sound2uk" && typeof words[current][2] != undefined) {
-//     var toGuessElement = document.createElement("audio");
-//     toGuessElement.setAttribute("controls", "");
-//     var toGuessSourceElement = document.createElement("source");
-//     toGuessSourceElement.setAttribute("type", "audio/ogg");
-//     toGuessSourceElement.setAttribute("src", fileprefix + words[current][2]);
-//     toGuessElement.appendChild(toGuessSourceElement);
-//     toGuess.appendChild(toGuessElement);
-//     toGuessElement.play();
-// 
-//     var answerInputElement = document.createElement("input");
-//     answerInputElement.setAttribute("type", "text");
-//     answerInputElement.setAttribute("id", "answerInputBox")
-//     answerInputElement.setAttribute("onkeydown", "if (event.keyCode == 13) getElementById(\"guessButton\").click()");
-//     answerInput.appendChild(answerInputElement);
-// 
-//     var guessButtonElement = document.createElement("input");
-//     guessButtonElement.setAttribute("type", "submit");
-//     guessButtonElement.setAttribute("onclick", "guess(getElementById(\"answerInputBox\").value);");
-//     guessButtonElement.setAttribute("id", "guessButton")
-//     answerInput.appendChild(guessButtonElement);
-// 
-//     var skipButtonElement = document.createElement("input");
-//     skipButtonElement.setAttribute("type", "submit");
-//     skipButtonElement.setAttribute("value", "Skip")
-//     skipButtonElement.setAttribute("onclick", "guess(\"\");");
-//     answerInput.appendChild(skipButtonElement);
-//   }
-// 
-//   if (mode == "en2uk") {
-//     toGuess.innerHTML = words[current][1];
-//     makeChoices();
-//   }
-// 
-//   if (mode == "uk2en") {
-//     toGuess.innerHTML = words[current][0];
-//     makeChoices();
-//   }
-// 
-// 
-// }
-// 
-// 
-// function takeInput(letter) {
-//   letter = letter.toLowerCase();
-//   var answerInputBox = document.getElementById("answerInputBox");
-//   var startPos = answerInputBox.selectionStart;
-//   var endPos = answerInputBox.selectionEnd;
-// 
-//   var currentText = answerInputBox.value;
-// 
-//   if (startPos == currentText.length) {
-//     answerInputBox.value =  currentText.concat(letter);
-//   } else {
-//     answerInputBox.value = currentText.slice(0, startPos) 
-//         + letter + currentText.slice(endPos, currentText.length)
-//   }
-//   
-//   answerInputBox.focus();
-// }
-// 
-// function makeErrorRow (error) {
-//   if (mode == "sound2uk") {
-//     row = "<td>" + error[0][0] + "</td>";
-//     row += "<td><audio controls><source type=\"audio/ogg\" src=\"";
-//     row += fileprefix + error[0][2];
-//     row += "\"/></audio>";
-//     row += "<td>" + error[1] + "</td>";
-//   }
-//   else if (mode == "uk2en") {
-//     row = "<td>" + error[0][0] + "</td>";
-//     row += "<td>" + error[0][1] + "</td>";
-//     row += "<td>" + error[1] + "</td>";
-//   }
-//   else if (mode == "en2uk") {
-//     row = "<td>" + error[0][1] + "</td>";
-//     row += "<td>" + error[0][0] + "</td>";
-//     row += "<td>" + error[1] + "</td>";
-//   }
-// 
-//   return row;
-// }
-// 
-// function checkAnswer (answer) {
-//   answer = answer.toLowerCase();
-//   if (mode == "sound2uk") {
-// 
-//     if (answer == words[current][0]) {
-//       ++score;
-//     } else {
-//       errors.push([ words[current], answer, words[current][2] ]);
-//     }
-//   }
-// 
-//   else if (mode == "uk2en") {
-// 
-//     if (answer == words[current][1]) {
-//       ++score;
-//     } else {
-//       errors.push([ words[current], answer, words[current][2] ]);
-//     }
-//   }
-// 
-//   else if (mode == "en2uk") {
-// 
-//     if (answer == words[current][0]) {
-//       ++score;
-//     } else {
-//       errors.push([ words[current], answer, words[current][2] ]);
-//     }
-//   }
-// 
-// }
-// 
-// function guess(answer) {
-// 
-//   if (answer == "") {
-//     alert("The correct answer was\n" + words[current][0]);
-//   }
-// 
-//   checkAnswer(answer);
-//   ++current;
-// 
-//   if (current === words.length) {
-//     var pct = Math.round(score / words.length * 100);
-//     var summary = "You got " + pct + "% correct!<br/><br/>"
-//     summary += "<table align=\"center\"><thead>";
-//     summary += "<td colspan=\"2\">Word</td><td>Guess</td>";
-//     summary += "</thead><tbody>"
-//     for (var i = 0; i < errors.length; ++i) {
-//       summary += "<tr>" + makeErrorRow(errors[i]) + "</tr>";
-//     }
-//     summary += "</tbody></table>";
-//     document.body.innerHTML = summary;
-//   } else {
-//     show();
-//   }
-// }
-// 
+function guess(word) {
+  if (toGuess != word) {
+    next_step = 0;
+  } else {
+    advance();
+  }
+  show();
+}
+
 show();
 </script>
 </body>
