@@ -2,11 +2,10 @@
 <html>
 <head>
 <meta charset="utf-8"/>
-<title>Alphabet Training</title>
+<link rel="stylesheet" type="text/css" href="css/main.css"/>
+<title>Alphabet Trainer / Тренер Абетки</title>
 <style>
-  html, body {
-    margin: 0; background: white; font-family:helvetica; text-align:center }
-  body { position: absolute; top:30%; width: 100% }
+  #main { position: absolute; top:30%; width: 100%; text-align:center }
   input[type=button] { font-size:20px; width:35px; height:35px; margin:2px }
   div { text-align:center }
   #progress { font-size: 30px }
@@ -17,6 +16,12 @@
 </style>
 </head>
 <body>
+<nav>
+  <ul>
+    <li><a href="index.html">Home / Головна</a></li>
+  </ul>
+</nav>
+<div id="main">
 <div id="progress">1/100</div>
 <div id="audio"><br/></div>
 <div id="type">
@@ -25,6 +30,7 @@
   <a href="#" onclick="set_qwerty_alphabet()">QWERTY</a>
 </div>
 <div id="answers"></div>
+</div>
 <script type="text/javascript">
 function shuffle(arr) {
   var shuffled = arr.slice(0); // Copy
